@@ -1,5 +1,6 @@
 import { MediaServerType } from '@server/constants/server';
 import blacklistedTagsProcessor from '@server/job/blacklistedTagsProcessor';
+import { jellyfinUserSync } from '@server/job/jellyfinUserSync';
 import availabilitySync from '@server/lib/availabilitySync';
 import downloadTracker from '@server/lib/downloadtracker';
 import ImageProxy from '@server/lib/imageproxy';
@@ -139,6 +140,23 @@ export const startJobs = (): void => {
       }),
       running: () => jellyfinFullScanner.status().running,
       cancelFn: () => jellyfinFullScanner.cancel(),
+    });
+
+    // Run jellyfin user permission sync every 15 minutes
+    scheduledJobs.push({
+      id: 'jellyfin-user-sync',
+      name: 'Jellyfin User Permission Sync',
+      type: 'process',
+      interval: 'minutes',
+      cronSchedule: jobs['jellyfin-user-sync'].schedule,
+      job: schedule.scheduleJob(jobs['jellyfin-user-sync'].schedule, () => {
+        logger.info('Starting scheduled job: Jellyfin User Permission Sync', {
+          label: 'Jobs',
+        });
+        jellyfinUserSync.run();
+      }),
+      running: () => jellyfinUserSync.status().running,
+      cancelFn: () => jellyfinUserSync.cancel(),
     });
   }
 

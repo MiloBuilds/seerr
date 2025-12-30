@@ -11,6 +11,7 @@ import type {
   GenreSliderItem,
   WatchlistResponse,
 } from '@server/interfaces/api/discoverInterfaces';
+import JellyfinPermissions from '@server/lib/jellyfinPermissions';
 import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
 import { mapProductionCompany } from '@server/models/Movie';
@@ -879,6 +880,12 @@ discoverRoutes.get<Record<string, unknown>, WatchlistResponse>(
         skip: offset,
       });
       if (total) {
+        const mediaItems = result
+          .map((w) => w.media)
+          .filter((m) => m !== undefined && m !== null);
+
+        await JellyfinPermissions.filterMedia(req.user, mediaItems);
+
         return res.json({
           page: page,
           totalPages: Math.ceil(total / itemsPerPage),

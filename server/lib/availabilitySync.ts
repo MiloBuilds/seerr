@@ -557,6 +557,10 @@ class AvailabilitySync {
           isMediaProcessing
             ? media[is4k ? 'jellyfinMediaId4k' : 'jellyfinMediaId']
             : null;
+        media[is4k ? 'jellyfinLibraryId4k' : 'jellyfinLibraryId'] =
+          isMediaProcessing
+            ? media[is4k ? 'jellyfinLibraryId4k' : 'jellyfinLibraryId']
+            : null;
       }
       logger.info(
         `The ${is4k ? '4K' : 'non-4K'} ${

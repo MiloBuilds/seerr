@@ -48,6 +48,7 @@ export interface JellyfinSettings {
   libraries: Library[];
   serverId: string;
   apiKey: string;
+  syncLibraryPermissions?: boolean;
 }
 export interface TautulliSettings {
   hostname?: string;
@@ -344,6 +345,7 @@ export type JobId =
   | 'download-sync-reset'
   | 'jellyfin-recently-added-scan'
   | 'jellyfin-full-scan'
+  | 'jellyfin-user-sync'
   | 'image-cache-cleanup'
   | 'availability-sync'
   | 'process-blacklisted-tags';
@@ -422,6 +424,7 @@ class Settings {
         libraries: [],
         serverId: '',
         apiKey: '',
+        syncLibraryPermissions: false,
       },
       tautulli: {},
       metadataSettings: {
@@ -566,6 +569,9 @@ class Settings {
         },
         'jellyfin-full-scan': {
           schedule: '0 0 3 * * *',
+        },
+        'jellyfin-user-sync': {
+          schedule: '0 */15 * * * *',
         },
         'image-cache-cleanup': {
           schedule: '0 0 5 * * *',

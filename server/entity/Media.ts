@@ -8,6 +8,7 @@ import type { User } from '@server/entity/User';
 import { Watchlist } from '@server/entity/Watchlist';
 import type { DownloadingItem } from '@server/lib/downloadtracker';
 import downloadTracker from '@server/lib/downloadtracker';
+import JellyfinPermissions from '@server/lib/jellyfinPermissions';
 import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
 import { DbAwareColumn } from '@server/utils/DbColumnHelper';
@@ -56,6 +57,8 @@ class Media {
         .where(' media.tmdbId in (:...finalIds)', { finalIds })
         .getMany();
 
+      await JellyfinPermissions.filterMedia(user, media);
+
       return media;
     } catch (e) {
       logger.error(e.message);
@@ -64,6 +67,7 @@ class Media {
   }
 
   public static async getMedia(
+    user: User | undefined,
     id: number,
     mediaType: MediaType
   ): Promise<Media | undefined> {
@@ -74,6 +78,8 @@ class Media {
         where: { tmdbId: id, mediaType: mediaType },
         relations: { requests: true, issues: true },
       });
+
+      await JellyfinPermissions.filterMedia(user, media);
 
       return media ?? undefined;
     } catch (e) {
@@ -184,6 +190,12 @@ class Media {
 
   @Column({ nullable: true, type: 'varchar' })
   public jellyfinMediaId4k?: string | null;
+
+  @Column({ nullable: true, type: 'simple-json' })
+  public jellyfinLibraryId?: string[] | null;
+
+  @Column({ nullable: true, type: 'simple-json' })
+  public jellyfinLibraryId4k?: string[] | null;
 
   public serviceUrl?: string;
   public serviceUrl4k?: string;

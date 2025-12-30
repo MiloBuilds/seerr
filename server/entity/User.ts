@@ -88,6 +88,12 @@ export class User {
   @Column({ type: 'varchar', nullable: true, select: false })
   public jellyfinAuthToken?: string | null;
 
+  @Column({ type: 'simple-json', nullable: true })
+  public jellyfinEnabledFolders?: string[] | null;
+
+  @Column({ type: 'boolean', default: false })
+  public jellyfinEnableAllFolders = false;
+
   @Column({ type: 'varchar', nullable: true, select: false })
   public plexToken?: string | null;
 

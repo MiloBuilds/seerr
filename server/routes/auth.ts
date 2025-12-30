@@ -350,6 +350,8 @@ authRoutes.post('/jellyfin', async (req, res, next) => {
           jellyfinUserId: account.User.Id,
           jellyfinDeviceId: deviceId,
           jellyfinAuthToken: account.AccessToken,
+          jellyfinEnabledFolders: account.User.Policy.EnabledFolders,
+          jellyfinEnableAllFolders: account.User.Policy.EnableAllFolders,
           permissions: Permission.ADMIN,
           userType:
             body.serverType === MediaServerType.JELLYFIN
@@ -382,6 +384,8 @@ authRoutes.post('/jellyfin', async (req, res, next) => {
         user.jellyfinUserId = account.User.Id;
         user.jellyfinDeviceId = deviceId;
         user.jellyfinAuthToken = account.AccessToken;
+        user.jellyfinEnabledFolders = account.User.Policy.EnabledFolders;
+        user.jellyfinEnableAllFolders = account.User.Policy.EnableAllFolders;
         user.permissions = Permission.ADMIN;
         user.avatar = getUserAvatarUrl(user);
         user.userType =
@@ -432,6 +436,8 @@ authRoutes.post('/jellyfin', async (req, res, next) => {
       );
       user.avatar = getUserAvatarUrl(user);
       user.jellyfinUsername = account.User.Name;
+      user.jellyfinEnabledFolders = account.User.Policy.EnabledFolders;
+      user.jellyfinEnableAllFolders = account.User.Policy.EnableAllFolders;
 
       if (user.username === account.User.Name) {
         user.username = '';
@@ -467,6 +473,8 @@ authRoutes.post('/jellyfin', async (req, res, next) => {
         jellyfinUsername: account.User.Name,
         jellyfinUserId: account.User.Id,
         jellyfinDeviceId: deviceId,
+        jellyfinEnabledFolders: account.User.Policy.EnabledFolders,
+        jellyfinEnableAllFolders: account.User.Policy.EnableAllFolders,
         permissions: settings.main.defaultPermissions,
         userType:
           settings.main.mediaServerType === MediaServerType.JELLYFIN

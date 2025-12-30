@@ -3,6 +3,7 @@ import Button from '@app/components/Common/Button';
 import LoadingSpinner from '@app/components/Common/LoadingSpinner';
 import SensitiveInput from '@app/components/Common/SensitiveInput';
 import LibraryItem from '@app/components/Settings/LibraryItem';
+import SettingsBadge from '@app/components/Settings/SettingsBadge';
 import useSettings from '@app/hooks/useSettings';
 import globalMessages from '@app/i18n/globalMessages';
 import defineMessages from '@app/utils/defineMessages';
@@ -67,6 +68,9 @@ const messages = defineMessages('components.Settings', {
   tip: 'Tip',
   scanbackground:
     'Scanning will run in the background. You can continue the setup process in the meantime.',
+  filterMediaByLibraryPermissions: 'Filter Media by Library Permissions',
+  filterMediaByLibraryPermissionsDescription:
+    'When enabled, users will only see media that is available in the Jellyfin libraries they have access to',
 });
 
 interface Library {
@@ -447,6 +451,7 @@ const SettingsJellyfin: React.FC<SettingsJellyfinProps> = ({
           jellyfinExternalUrl: data?.externalHostname || '',
           jellyfinForgotPasswordUrl: data?.jellyfinForgotPasswordUrl || '',
           apiKey: data?.apiKey,
+          syncLibraryPermissions: data?.syncLibraryPermissions,
         }}
         validationSchema={JellyfinSettingsSchema}
         onSubmit={async (values) => {
@@ -459,6 +464,7 @@ const SettingsJellyfin: React.FC<SettingsJellyfinProps> = ({
               externalHostname: values.jellyfinExternalUrl,
               jellyfinForgotPasswordUrl: values.jellyfinForgotPasswordUrl,
               apiKey: values.apiKey,
+              syncLibraryPermissions: values.syncLibraryPermissions,
             } as JellyfinSettings);
 
             addToast(
@@ -660,6 +666,31 @@ const SettingsJellyfin: React.FC<SettingsJellyfinProps> = ({
                         {errors.jellyfinForgotPasswordUrl}
                       </div>
                     )}
+                </div>
+              </div>
+              <div className="form-row">
+                <label
+                  htmlFor="syncLibraryPermissions"
+                  className="checkbox-label"
+                >
+                  <span className="mr-2">
+                    {intl.formatMessage(
+                      messages.filterMediaByLibraryPermissions
+                    )}
+                  </span>
+                  <SettingsBadge badgeType="experimental" />
+                  <span className="label-tip">
+                    {intl.formatMessage(
+                      messages.filterMediaByLibraryPermissionsDescription
+                    )}
+                  </span>
+                </label>
+                <div className="form-input-area">
+                  <Field
+                    type="checkbox"
+                    id="syncLibraryPermissions"
+                    name="syncLibraryPermissions"
+                  />
                 </div>
               </div>
               <div

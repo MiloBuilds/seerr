@@ -11,6 +11,7 @@ import type {
   MediaResultsResponse,
   MediaWatchDataResponse,
 } from '@server/interfaces/api/mediaInterfaces';
+import JellyfinPermissions from '@server/lib/jellyfinPermissions';
 import { Permission } from '@server/lib/permissions';
 import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
@@ -74,9 +75,30 @@ mediaRoutes.get('/', async (req, res, next) => {
       where: statusFilter && {
         status: statusFilter,
       },
-      take: pageSize,
+      take: Math.max(pageSize * 5, 40),
       skip,
     });
+
+    await JellyfinPermissions.filterMedia(req.user, media);
+
+    const filteredResults = media
+      .filter((item) => {
+        if (req.query.filter === 'available') {
+          return item.status === MediaStatus.AVAILABLE;
+        }
+        if (req.query.filter === 'partial') {
+          return item.status === MediaStatus.PARTIALLY_AVAILABLE;
+        }
+        if (req.query.filter === 'allavailable') {
+          return (
+            item.status === MediaStatus.AVAILABLE ||
+            item.status === MediaStatus.PARTIALLY_AVAILABLE
+          );
+        }
+        return true;
+      })
+      .slice(0, pageSize);
+
     return res.status(200).json({
       pageInfo: {
         pages: Math.ceil(mediaCount / pageSize),
@@ -84,7 +106,7 @@ mediaRoutes.get('/', async (req, res, next) => {
         results: mediaCount,
         page: Math.ceil(skip / pageSize) + 1,
       },
-      results: media,
+      results: filteredResults,
     } as MediaResultsResponse);
   } catch (e) {
     next({ status: 500, message: e.message });

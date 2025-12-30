@@ -9,6 +9,7 @@ import {
 import { getRepository } from '@server/datasource';
 import OverrideRule from '@server/entity/OverrideRule';
 import type { MediaRequestBody } from '@server/interfaces/api/requestInterfaces';
+import JellyfinPermissions from '@server/lib/jellyfinPermissions';
 import notificationManager, { Notification } from '@server/lib/notifications';
 import { Permission } from '@server/lib/permissions';
 import { getSettings } from '@server/lib/settings';
@@ -147,6 +148,23 @@ export class MediaRequest {
         });
 
         throw new BlacklistedMediaError('This media is blacklisted.');
+      }
+
+      if (
+        !JellyfinPermissions.hasAccessToMedia(user, media, requestBody.is4k)
+      ) {
+        logger.warn(
+          'Duplicate request for media since user does not have access to the specific Jellyfin library',
+          {
+            label: 'Media Request',
+            username: user.username,
+            jellyfinUserId: user.jellyfinUserId,
+            tmdbId: media.tmdbId,
+          }
+        );
+        throw new RequestPermissionError(
+          `You do not have permission to request this media.`
+        );
       }
 
       if (media.status === MediaStatus.UNKNOWN && !requestBody.is4k) {

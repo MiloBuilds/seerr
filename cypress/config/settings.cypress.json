@@ -176,6 +176,9 @@
     "jellyfin-full-scan": {
       "schedule": "0 0 3 * * *"
     },
+    "jellyfin-user-sync": {
+      "schedule": "0 */15 * * * *"
+    },
     "image-cache-cleanup": {
       "schedule": "0 0 5 * * *"
     }

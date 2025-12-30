@@ -16,10 +16,14 @@ export interface JellyfinUserResponse {
   Configuration: {
     GroupedFolders: string[];
   };
-  Policy: {
-    IsAdministrator: boolean;
-  };
+  Policy: JellyfinPolicy;
   PrimaryImageTag?: string;
+}
+
+export interface JellyfinPolicy {
+  IsAdministrator: boolean;
+  EnabledFolders: string[];
+  EnableAllFolders: boolean;
 }
 
 export interface JellyfinDevice {

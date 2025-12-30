@@ -22,7 +22,7 @@ movieRoutes.get('/:id', async (req, res, next) => {
       language: (req.query.language as string) ?? req.locale,
     });
 
-    const media = await Media.getMedia(tmdbMovie.id, MediaType.MOVIE);
+    const media = await Media.getMedia(req.user, tmdbMovie.id, MediaType.MOVIE);
 
     const onUserWatchlist = await getRepository(Watchlist).exist({
       where: {

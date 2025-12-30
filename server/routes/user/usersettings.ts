@@ -465,6 +465,8 @@ userSettingsRoutes.post<{ username: string; password: string }>(
       user.jellyfinUsername = account.User.Name;
       user.jellyfinAuthToken = account.AccessToken;
       user.jellyfinDeviceId = deviceId;
+      user.jellyfinEnabledFolders = account.User.Policy.EnabledFolders;
+      user.jellyfinEnableAllFolders = account.User.Policy.EnableAllFolders;
       await userRepository.save(user);
 
       return res.status(204).send();

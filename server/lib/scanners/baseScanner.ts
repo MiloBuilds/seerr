@@ -35,6 +35,7 @@ interface ProcessOptions {
   mediaAddedAt?: Date;
   ratingKey?: string;
   jellyfinMediaId?: string;
+  jellyfinLibraryId?: string;
   imdbId?: string;
   serviceId?: number;
   externalServiceId?: number;
@@ -98,6 +99,7 @@ class BaseScanner<T> {
       mediaAddedAt,
       ratingKey,
       jellyfinMediaId,
+      jellyfinLibraryId,
       imdbId,
       serviceId,
       externalServiceId,
@@ -145,6 +147,16 @@ class BaseScanner<T> {
           existing[is4k ? 'jellyfinMediaId4k' : 'jellyfinMediaId'] =
             jellyfinMediaId;
           changedExisting = true;
+        }
+
+        if (jellyfinLibraryId) {
+          const field = is4k ? 'jellyfinLibraryId4k' : 'jellyfinLibraryId';
+          const currentIds = existing[field] ?? [];
+          if (!currentIds.includes(jellyfinLibraryId)) {
+            currentIds.push(jellyfinLibraryId);
+            existing[field] = currentIds;
+            changedExisting = true;
+          }
         }
 
         if (imdbId && !existing.imdbId) {
@@ -230,6 +242,12 @@ class BaseScanner<T> {
             is4k && this.enable4kMovie ? jellyfinMediaId : undefined;
         }
 
+        if (jellyfinLibraryId) {
+          newMedia.jellyfinLibraryId = !is4k ? [jellyfinLibraryId] : undefined;
+          newMedia.jellyfinLibraryId4k =
+            is4k && this.enable4kMovie ? [jellyfinLibraryId] : undefined;
+        }
+
         await mediaRepository.save(newMedia);
         this.log(`Saved new media: ${title}`);
       }
@@ -254,6 +272,7 @@ class BaseScanner<T> {
       mediaAddedAt,
       ratingKey,
       jellyfinMediaId,
+      jellyfinLibraryId,
       serviceId,
       externalServiceId,
       externalServiceSlug,
@@ -314,6 +333,27 @@ class BaseScanner<T> {
           media.jellyfinMediaId4k !== jellyfinMediaId
         ) {
           media.jellyfinMediaId4k = jellyfinMediaId;
+        }
+
+        if (media && season.episodes > 0 && jellyfinLibraryId) {
+          const currentIds = media.jellyfinLibraryId ?? [];
+          if (!currentIds.includes(jellyfinLibraryId)) {
+            currentIds.push(jellyfinLibraryId);
+            media.jellyfinLibraryId = currentIds;
+          }
+        }
+
+        if (
+          media &&
+          season.episodes4k > 0 &&
+          this.enable4kShow &&
+          jellyfinLibraryId
+        ) {
+          const currentIds = media.jellyfinLibraryId4k ?? [];
+          if (!currentIds.includes(jellyfinLibraryId)) {
+            currentIds.push(jellyfinLibraryId);
+            media.jellyfinLibraryId4k = currentIds;
+          }
         }
 
         if (existingSeason) {
@@ -551,6 +591,24 @@ class BaseScanner<T> {
                 sn.status4k === MediaStatus.AVAILABLE
             )
               ? jellyfinMediaId
+              : undefined,
+          jellyfinLibraryId:
+            newSeasons.some(
+              (sn) =>
+                sn.status === MediaStatus.PARTIALLY_AVAILABLE ||
+                sn.status === MediaStatus.AVAILABLE
+            ) && jellyfinLibraryId
+              ? [jellyfinLibraryId]
+              : undefined,
+          jellyfinLibraryId4k:
+            this.enable4kShow &&
+            newSeasons.some(
+              (sn) =>
+                sn.status4k === MediaStatus.PARTIALLY_AVAILABLE ||
+                sn.status4k === MediaStatus.AVAILABLE
+            ) &&
+            jellyfinLibraryId
+              ? [jellyfinLibraryId]
               : undefined,
           status: isAllStandardSeasons
             ? MediaStatus.AVAILABLE

@@ -639,6 +639,8 @@ router.post(
             jellyfinDeviceId: Buffer.from(
               `BOT_seerr_${jellyfinUser?.Name ?? ''}`
             ).toString('base64'),
+            jellyfinEnabledFolders: jellyfinUser?.Policy.EnabledFolders,
+            jellyfinEnableAllFolders: jellyfinUser?.Policy.EnableAllFolders,
             email: jellyfinUser?.Name,
             permissions: settings.main.defaultPermissions,
             avatar: `/avatarproxy/${jellyfinUser?.Id}`,

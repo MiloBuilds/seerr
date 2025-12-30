@@ -13,6 +13,7 @@ import type {
 } from '@server/api/themoviedb/interfaces';
 import { MediaServerType } from '@server/constants/server';
 import { getRepository } from '@server/datasource';
+import Media from '@server/entity/Media';
 import { User } from '@server/entity/User';
 import type {
   ProcessableSeason,
@@ -24,6 +25,7 @@ import type { Library } from '@server/lib/settings';
 import { getSettings } from '@server/lib/settings';
 import { getHostname } from '@server/utils/getHostname';
 import { uniqWith } from 'lodash';
+import { Like } from 'typeorm';
 
 interface JellyfinSyncStatus extends StatusBase {
   currentLibrary: Library;
@@ -39,6 +41,8 @@ class JellyfinScanner
   private currentLibrary: Library;
   private isRecentOnly = false;
   private processedAnidbSeason: Map<number, Map<number, number>>;
+  private currentProcessedIds = new Set<number>();
+  private currentProcessedIds4k = new Set<number>();
 
   constructor({ isRecentOnly }: { isRecentOnly?: boolean } = {}) {
     super('Jellyfin Sync');
@@ -146,20 +150,24 @@ class JellyfinScanner
         : undefined;
 
       if (hasOtherResolution || (!this.enable4kMovie && has4k)) {
+        this.currentProcessedIds.add(tmdbId);
         await this.processMovie(tmdbId, {
           is4k: false,
           mediaAddedAt,
           jellyfinMediaId: metadata.Id,
+          jellyfinLibraryId: this.currentLibrary.id,
           imdbId,
           title: metadata.Name,
         });
       }
 
       if (has4k && this.enable4kMovie) {
+        this.currentProcessedIds4k.add(tmdbId);
         await this.processMovie(tmdbId, {
           is4k: true,
           mediaAddedAt,
           jellyfinMediaId: metadata.Id,
+          jellyfinLibraryId: this.currentLibrary.id,
           imdbId,
           title: metadata.Name,
         });
@@ -400,6 +408,17 @@ class JellyfinScanner
           }
         }
 
+        if (processableSeasons.some((season) => season.episodes > 0)) {
+          this.currentProcessedIds.add(tvShow.id);
+        }
+
+        if (
+          this.enable4kShow &&
+          processableSeasons.some((season) => season.episodes4k > 0)
+        ) {
+          this.currentProcessedIds4k.add(tvShow.id);
+        }
+
         await this.processShow(
           tvShow.id,
           tvShow.external_ids?.tvdb_id,
@@ -409,6 +428,7 @@ class JellyfinScanner
               ? new Date(metadata.DateCreated)
               : undefined,
             jellyfinMediaId: Id,
+            jellyfinLibraryId: this.currentLibrary.id,
             title: tvShow.name,
           }
         );
@@ -429,6 +449,61 @@ class JellyfinScanner
         'error',
         { errorMessage: e.message, jellyfinitem }
       );
+    }
+  }
+
+  private async cleanupLibrary(libraryId: string) {
+    if (this.isRecentOnly) {
+      return;
+    }
+
+    const mediaRepository = getRepository(Media);
+
+    // Find all media that claim to be in this library
+    // We use a Like query to find any media containing the library ID
+    const relevantMedia = await mediaRepository.find({
+      where: [
+        { jellyfinLibraryId: Like(`%"${libraryId}"%`) },
+        { jellyfinLibraryId4k: Like(`%"${libraryId}"%`) },
+      ],
+    });
+
+    for (const media of relevantMedia) {
+      let changed = false;
+
+      // Check standard library IDs
+      if (
+        media.jellyfinLibraryId &&
+        media.jellyfinLibraryId.includes(libraryId) &&
+        !this.currentProcessedIds.has(media.tmdbId)
+      ) {
+        media.jellyfinLibraryId = media.jellyfinLibraryId.filter(
+          (id) => id !== libraryId
+        );
+        if (media.jellyfinLibraryId.length === 0) {
+          media.jellyfinLibraryId = null;
+        }
+        changed = true;
+      }
+
+      // Check 4k library IDs
+      if (
+        media.jellyfinLibraryId4k &&
+        media.jellyfinLibraryId4k.includes(libraryId) &&
+        !this.currentProcessedIds4k.has(media.tmdbId)
+      ) {
+        media.jellyfinLibraryId4k = media.jellyfinLibraryId4k.filter(
+          (id) => id !== libraryId
+        );
+        if (media.jellyfinLibraryId4k.length === 0) {
+          media.jellyfinLibraryId4k = null;
+        }
+        changed = true;
+      }
+
+      if (changed) {
+        await mediaRepository.save(media);
+      }
     }
   }
 
@@ -509,9 +584,12 @@ class JellyfinScanner
           this.currentLibrary = library;
           // Reset AniDB season tracking per library
           this.processedAnidbSeason = new Map();
+          this.currentProcessedIds = new Set();
+          this.currentProcessedIds4k = new Set();
           this.log(`Beginning to process library: ${library.name}`, 'info');
           this.items = await this.jfClient.getLibraryContents(library.id);
           await this.loop(this.processItem.bind(this), { sessionId });
+          await this.cleanupLibrary(library.id);
         }
       }
 

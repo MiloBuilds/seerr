@@ -4,6 +4,7 @@ import Issue from '@server/entity/Issue';
 import IssueComment from '@server/entity/IssueComment';
 import Media from '@server/entity/Media';
 import type { IssueResultsResponse } from '@server/interfaces/api/issueInterfaces';
+import JellyfinPermissions from '@server/lib/jellyfinPermissions';
 import { Permission } from '@server/lib/permissions';
 import logger from '@server/logger';
 import { isAuthenticated } from '@server/middleware/auth';
@@ -82,6 +83,12 @@ issueRoutes.get<Record<string, string>, IssueResultsResponse>(
       .take(pageSize)
       .skip(skip)
       .getManyAndCount();
+
+    const mediaItems = issues
+      .map((issue) => issue.media)
+      .filter((media) => media !== undefined && media !== null);
+
+    await JellyfinPermissions.filterMedia(req.user, mediaItems);
 
     return res.status(200).json({
       pageInfo: {
@@ -235,6 +242,8 @@ issueRoutes.get<{ issueId: string }>(
         .leftJoinAndSelect('issue.media', 'media')
         .where('issue.id = :issueId', { issueId: Number(req.params.issueId) })
         .getOneOrFail();
+
+      await JellyfinPermissions.filterMedia(req.user, issue.media);
 
       if (
         issue.createdBy.id !== req.user.id &&
